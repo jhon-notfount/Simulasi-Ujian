@@ -415,6 +415,8 @@ function replaceQuestionSet(id, file, questions) {
 
   if (activeQuestionSetId === id) {
     setLoadedQuestions(questionSet.questions, questionSet.name, questionSet.id);
+    stopTimer();
+    showPanel(setupPanel);
   }
 
   renderQuestionBank();
@@ -430,6 +432,9 @@ function selectQuestionSet(id) {
 
   try { setLoadedQuestions(questionSet.questions, questionSet.name, questionSet.id); }
   catch (error) { showBankMessage(error.message, "error"); return; }
+  // Memilih set soal mengakhiri sesi ujian yang berjalan dan wajib kembali ke panel setup
+  stopTimer();
+  showPanel(setupPanel);
   clearUploadMessage();
   showUploadMessage(`Soal "${questionSet.name}" siap dikerjakan.`, "success");
   renderQuestionBank();
