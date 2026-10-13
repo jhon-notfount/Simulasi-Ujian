@@ -101,7 +101,8 @@ const fs = require('node:fs');
     assert.deepEqual(exported.map(q => q.answer), ['C', 'D', 'E']);
     await page.reload();
     await page.click('#openQuestionBankBtn');
-    await page.click('[data-action="select"]');
+    await page.check('#questionBankList article:nth-child(1) .bank-check');
+    await page.click('#applyBankSelectionBtn');
     await page.click('#startExamBtn');
     for (const [index, count] of [3, 4, 5].entries()) {
       assert.deepEqual(await page.locator('input[name="answer"]').evaluateAll(inputs => inputs.map(input => input.value)), 'ABCDE'.slice(0, count).split(''));

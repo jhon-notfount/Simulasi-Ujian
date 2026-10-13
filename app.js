@@ -36,6 +36,8 @@ const bankUploadPlaceholder = document.getElementById("bankUploadPlaceholder");
 const bankMessage = document.getElementById("bankMessage");
 const bankCount = document.getElementById("bankCount");
 const questionBankList = document.getElementById("questionBankList");
+const bankSelectionHint = document.getElementById("bankSelectionHint");
+const applyBankSelectionBtn = document.getElementById("applyBankSelectionBtn");
 const appDialog = document.getElementById("appDialog");
 const appDialogIcon = document.getElementById("appDialogIcon");
 const appDialogTitle = document.getElementById("appDialogTitle");
@@ -53,6 +55,7 @@ let timer = null;
 let secondsLeft = 0;
 let questionBank = [];
 let activeQuestionSetId = null;
+let checkedQuestionSetId = null;
 let pendingReplaceQuestionSetId = null;
 let activeDialogState = null;
 
@@ -356,13 +359,17 @@ function renderQuestionBank() {
     const card = document.createElement("article");
     card.className = "bank-item";
     if (item.id === activeQuestionSetId) card.classList.add("active");
+    if (item.id === checkedQuestionSetId) card.classList.add("checked");
+    const checkboxId = `bankCheck-${sanitizeText(item.id)}`;
     card.innerHTML = `
-      <div class="bank-item-main">
-        <h4>${sanitizeText(item.name)}</h4>
-        <p>${item.questions.length} soal &middot; Update ${formatQuestionSetDate(item.updatedAt)}</p>
+      <div class="bank-item-top">
+        <input type="checkbox" class="bank-check" id="${checkboxId}" data-id="${sanitizeText(item.id)}" ${item.id === checkedQuestionSetId ? "checked" : ""} />
+        <label class="bank-item-main" for="${checkboxId}">
+          <h4>${sanitizeText(item.name)}</h4>
+          <p>${item.questions.length} soal &middot; Update ${formatQuestionSetDate(item.updatedAt)}</p>
+        </label>
       </div>
       <div class="bank-item-actions">
-        <button type="button" class="primary small-button" data-action="select" data-id="${sanitizeText(item.id)}">Pilih</button>
         <button type="button" class="secondary small-button" data-action="rename" data-id="${sanitizeText(item.id)}">Ubah Nama</button>
         <button type="button" class="secondary small-button" data-action="replace" data-id="${sanitizeText(item.id)}">Ganti File</button>
         <button type="button" class="danger small-button" data-action="delete" data-id="${sanitizeText(item.id)}">Hapus</button>
@@ -370,16 +377,29 @@ function renderQuestionBank() {
     `;
     questionBankList.appendChild(card);
   });
+  updateBankSelectionControls();
+}
+
+function updateBankSelectionControls() {
+  const selected = questionBank.find((item) => item.id === checkedQuestionSetId);
+  applyBankSelectionBtn.disabled = !selected;
+  bankSelectionHint.textContent = selected
+    ? `File dicentang: "${selected.name}".`
+    : "Centang satu file soal untuk dipilih.";
 }
 
 function openQuestionBank() {
   clearBankMessage();
+  checkedQuestionSetId = questionBank.some((item) => item.id === activeQuestionSetId)
+    ? activeQuestionSetId
+    : null;
   renderQuestionBank();
   questionBankModal.classList.remove("hidden");
 }
 
 function closeQuestionBank() {
   questionBankModal.classList.add("hidden");
+  checkedQuestionSetId = null;
   pendingReplaceQuestionSetId = null;
 }
 
@@ -493,6 +513,7 @@ async function deleteQuestionSet(id) {
   questionBank = questionBank.filter((item) => item.id !== id);
   if (!saveQuestionBank()) { questionBank = previous; return; }
   if (activeQuestionSetId === id) activeQuestionSetId = null;
+  if (checkedQuestionSetId === id) checkedQuestionSetId = null;
   renderQuestionBank();
   showBankMessage("File soal berhasil dihapus.");
 }
@@ -504,7 +525,6 @@ function onQuestionBankAction(event) {
   const id = button.dataset.id;
   const action = button.dataset.action;
 
-  if (action === "select") selectQuestionSet(id);
   if (action === "rename") renameQuestionSet(id);
   if (action === "delete") deleteQuestionSet(id);
   if (action === "replace") {
@@ -911,6 +931,20 @@ bankReplaceFileInput.addEventListener("change", (event) => {
 openQuestionBankBtn.addEventListener("click", openQuestionBank);
 closeQuestionBankBtn.addEventListener("click", closeQuestionBank);
 questionBankList.addEventListener("click", onQuestionBankAction);
+questionBankList.addEventListener("change", (event) => {
+  const checkbox = event.target.closest("input.bank-check");
+  if (!checkbox) return;
+  checkedQuestionSetId = checkbox.checked ? checkbox.dataset.id : null;
+  questionBankList.querySelectorAll(".bank-item").forEach((card) => {
+    const input = card.querySelector(".bank-check");
+    if (input !== checkbox) input.checked = false;
+    card.classList.toggle("checked", input.checked);
+  });
+  updateBankSelectionControls();
+});
+applyBankSelectionBtn.addEventListener("click", () => {
+  if (checkedQuestionSetId) selectQuestionSet(checkedQuestionSetId);
+});
 clearQuestionsBtn.addEventListener("click", onClearQuestions);
 startExamBtn.addEventListener("click", startExam);
 submitExamBtn.addEventListener("click", confirmSubmitExam);

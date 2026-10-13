@@ -157,7 +157,7 @@
       <div class="modal-header">
         <span class="icon-tile large"><i data-icon="database"></i></span><div>
           <h2 id="questionBankTitle">Manajemen Bank Soal</h2>
-          <p>Simpan beberapa file soal, lalu pilih salah satu untuk dikerjakan.</p>
+          <p>Simpan beberapa file soal, centang salah satu, lalu gunakan untuk dikerjakan.</p>
         </div>
         <button id="closeQuestionBankBtn" type="button" class="icon-button" aria-label="Tutup">&times;</button>
       </div>
@@ -179,6 +179,10 @@
             <span id="bankCount">0 file</span>
           </div>
           <div id="questionBankList" class="bank-list"></div>
+          <div class="bank-list-footer">
+            <span id="bankSelectionHint" class="bank-selection-hint">Centang satu file soal untuk dipilih.</span>
+            <button id="applyBankSelectionBtn" type="button" class="primary" disabled><i data-icon="check"></i>Gunakan Soal Terpilih</button>
+          </div>
         </section>
       </div>
     </div>
