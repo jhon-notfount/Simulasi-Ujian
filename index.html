@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulasi Ujian</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#setupPanel">Lewati ke konten</a>
+  <aside class="app-sidebar" aria-label="Navigasi utama">
+    <a class="brand" href="index.html"><span class="brand-mark" data-icon="cap"></span><span>Simulasi Ujian</span></a>
+    <div class="nav-caption">RUANG BELAJAR</div>
+    <nav>
+      <button id="navSetup" class="nav-item active" type="button" aria-current="page"><i data-icon="file"></i>Buat Ujian</button>
+      <button id="navBank" class="nav-item" type="button"><i data-icon="database"></i>Bank Soal</button>
+      <button id="navGuide" class="nav-item" type="button"><i data-icon="book"></i>Panduan</button>
+    </nav>
+    <div class="sidebar-note"><div class="book-art" aria-hidden="true"><span></span><span></span><span></span></div><strong>Langkah kecil,<br>hasil lebih baik.</strong><p>Siapkan, latih, dan ukur kemampuanmu setiap hari.</p><span class="note-tag">Belajar dengan ritmemu</span></div>
+    <div class="sidebar-footer"><span class="online-dot"></span> Ruang latihan mandiri</div>
+  </aside>
+  <div class="container">
+    <header class="page-header">
+      <div><h1>Simulasi Ujian</h1><p>Upload soal, atur durasi, dan jalankan ujian dengan mudah.</p></div>
+      <span class="workspace-badge"><i data-icon="shield"></i>Latihan mandiri</span>
+    </header>
+    <div class="setup-layout" id="setupLayout">
+      <div class="setup-main">
+        <ol class="setup-steps" aria-label="Tahapan ujian">
+          <li class="current"><span class="step-number">1</span><div><strong>Pengaturan Soal</strong><small>Upload dan atur ujian</small></div></li>
+          <li id="reviewStep"><span class="step-number">2</span><div><strong>Tinjau Soal</strong><small>Cek jumlah dan detail</small></div></li>
+          <li><span class="step-number">3</span><div><strong>Jalankan Ujian</strong><small>Mulai simulasi</small></div></li>
+        </ol>
+    <section class="panel" id="setupPanel">
+      <div class="section-heading"><span class="icon-tile"><i data-icon="file"></i></span><div><h2>Pengaturan Soal</h2><p>Atur informasi dasar ujian dan siapkan soalmu di sini.</p></div><span class="section-tag">LANGKAH 01</span></div>
+
+      <div class="field">
+        <label for="examTitle">Judul Ujian <span class="optional-label">opsional</span></label>
+        <input id="examTitle" type="text" placeholder="Contoh: Ujian Matematika" />
+      </div>
+
+      <div class="field">
+        <label for="questionFile">Upload soal (JSON / CSV)</label>
+        <div class="upload-input-group">
+          <label for="questionFile" class="upload-file-label main-dropzone">
+            <span class="upload-cloud"><i data-icon="upload"></i></span>
+            <strong class="drop-title">Drag &amp; drop file soal di sini</strong>
+            <span class="drop-subtitle">atau klik untuk memilih file</span>
+            <span class="file-cards" aria-hidden="true"><span><i data-icon="file"></i>JSON</span><span><i data-icon="file"></i>CSV</span></span>
+            <span class="upload-button"><i data-icon="upload"></i>Pilih File</span>
+            <span class="upload-placeholder" id="uploadPlaceholder">Tidak ada file dipilih</span>
+            <input id="questionFile" type="file" accept=".json,.csv" />
+          </label>
+        </div>
+        <div id="uploadMessage" class="upload-message hidden"></div>
+        <small class="format-hint"><i data-icon="info"></i><span>Upload JSON atau CSV untuk impor soal ABC, ABCD, ABCDE, atau esai. Jumlah pilihan boleh berbeda tiap soal. Untuk soal bergambar, unggah gambar melalui input manual atau sertakan gambar dalam file JSON.</span></small>
+      </div>
+
+      <div class="field">
+        <label for="duration">Durasi <span class="optional-label">menit</span></label>
+        <div class="duration-row"><div class="input-icon"><i data-icon="clock"></i><input id="duration" type="number" min="1" value="30" /></div><div class="duration-hint"><i data-icon="clock"></i><span>Atur waktu pengerjaan<br>sesuai kebutuhanmu.</span></div></div>
+      </div>
+
+      <div class="field">
+        <div class="actions">
+          <button id="openQuestionBankBtn" type="button" class="secondary"><i data-icon="database"></i>Kelola Bank Soal</button>
+          <button id="clearQuestionsBtn" type="button" class="danger"><i data-icon="trash"></i>Kosongkan Soal</button>
+        </div>
+      </div>
+
+      <div class="summary">
+        <span class="icon-tile"><i data-icon="file"></i></span><div><span>Jumlah soal</span><strong id="questionCount">0</strong></div><p>Soal siap untuk dikerjakan.<br>Tambahkan dari file atau buat sendiri.</p>
+      </div>
+
+      <details class="question-editor">
+        <summary><span class="plus-icon">+</span><span>Tambah soal manual / bergambar<small>Tambahkan satu per satu, termasuk soal dengan gambar.</small></span><i data-icon="chevron"></i></summary>
+        <form id="questionEditorForm">
+          <div class="field"><label for="questionType">Jenis soal</label><select id="questionType"><option value="multiple-choice">Pilihan ganda</option><option value="essay">Esai</option></select></div>
+          <div class="field"><label for="manualQuestion">Pertanyaan</label><textarea id="manualQuestion" rows="3" required></textarea></div>
+          <div class="field"><label for="questionImageInput">Gambar soal (opsional, maksimal 2 MB)</label><input id="questionImageInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" /><small>Gambar disimpan bersama soal dan tersedia tanpa internet.</small><img id="questionImagePreview" class="question-image hidden" alt="Pratinjau gambar soal" /><button id="removeQuestionImage" type="button" class="secondary">Hapus gambar</button></div>
+          <div id="choiceCountField" class="field"><label for="choiceCount">Jumlah pilihan</label><select id="choiceCount"><option value="3">3 pilihan (ABC)</option><option value="4" selected>4 pilihan (ABCD)</option><option value="5">5 pilihan (ABCDE)</option></select></div>
+          <div id="manualChoices" class="choice-editor">
+            <div class="field"><label for="manualOptionA">Pilihan A</label><input id="manualOptionA" type="text" required /></div>
+            <div class="field"><label for="manualOptionB">Pilihan B</label><input id="manualOptionB" type="text" required /></div>
+            <div class="field"><label for="manualOptionC">Pilihan C</label><input id="manualOptionC" type="text" required /></div>
+            <div class="field"><label for="manualOptionD">Pilihan D</label><input id="manualOptionD" type="text" required /></div>
+            <div class="field hidden"><label for="manualOptionE">Pilihan E</label><input id="manualOptionE" type="text" disabled /></div>
+            <div class="field"><label for="manualAnswer">Kunci jawaban</label><select id="manualAnswer"><option>A</option><option>B</option><option>C</option><option>D</option></select></div>
+          </div>
+          <div id="manualEssay" class="field hidden"><label for="manualReference">Jawaban acuan / pedoman penilaian (opsional)</label><textarea id="manualReference" rows="3"></textarea><small>Esai dinilai manual setelah ujian. Setiap soal memiliki bobot yang sama.</small></div>
+          <div id="editorMessage" class="upload-message hidden" role="status"></div>
+          <button id="addManualQuestion" type="submit" class="primary">Tambahkan soal</button>
+        </form>
+      </details>
+      <div id="loadedQuestionList" class="loaded-question-list"></div>
+      <div class="setup-footer"><div class="actions"><button id="saveCurrentQuestions" type="button" class="secondary"><i data-icon="save"></i>Simpan ke Bank Soal</button><button id="exportQuestions" type="button" class="secondary"><i data-icon="download"></i>Unduh JSON</button></div><button id="startExamBtn" type="button" class="primary"><i data-icon="play"></i>Mulai Ujian</button></div>
+      <p class="save-note"><i data-icon="info"></i>Simpan ke bank soal atau unduh JSON sebelum menutup halaman.</p>
+    </section>
+      </div>
+      <aside class="help-column" aria-label="Panduan persiapan">
+        <section class="help-hero"><div class="exam-art" aria-hidden="true"><div class="art-orbit"></div><div class="art-sheet"><span></span><i data-icon="check"></i><span></span><i data-icon="check"></i><span></span></div><div class="art-target"><i data-icon="target"></i></div><span class="art-spark">+</span></div><h3>Persiapan baik,<br>belajar lebih percaya diri.</h3><p>Susun soal, atur waktumu, dan mulai latihan dalam beberapa langkah sederhana.</p></section>
+        <section class="help-card" id="uploadTips"><h3><i data-icon="bulb"></i>Tips menyiapkan soal</h3><ul><li>Gunakan file JSON atau CSV dengan format yang sesuai.</li><li>Campurkan pilihan ganda dan esai dalam satu ujian.</li><li>Tambahkan gambar PNG, JPG, WebP, atau GIF melalui input manual.</li><li>Periksa kembali jumlah soal sebelum mulai.</li></ul></section>
+        <section class="help-card format-card"><h3><i data-icon="file"></i>Butuh contoh format?</h3><p>Mulai dari contoh, lalu sesuaikan dengan materi belajarmu.</p><div class="sample-links"><a href="sample-soal.csv" download>CSV <i data-icon="download"></i></a><a href="sample-soal-campuran.json" download>JSON <i data-icon="download"></i></a></div><button id="openGuideBtn" type="button" class="text-button">Lihat panduan lengkap <i data-icon="arrow"></i></button></section>
+      </aside>
+    </div>
+
+    <section class="panel hidden" id="examPanel">
+      <div class="exam-header">
+        <span class="icon-tile"><i data-icon="file"></i></span><div class="exam-heading"><h2 id="examName"></h2><p>Kerjakan dengan teliti. Kamu pasti bisa.</p></div>
+        <div class="timer-card"><i data-icon="clock"></i><div><small>Waktu tersisa</small><span id="timer">00:00</span></div></div>
+        <button id="endExamBtn" class="danger"><i data-icon="exit"></i>Akhiri Ujian</button>
+      </div>
+
+      <div class="exam-body">
+        <div class="question-area">
+          <div class="question-meta">
+            <span>Soal <strong id="currentQuestionNumber">1</strong> dari <strong id="totalQuestions">0</strong></span>
+            <span id="questionStatusText">Belum dijawab</span>
+          </div>
+          <div id="questionsContainer"></div>
+          <div class="exam-actions">
+            <button id="prevQuestionBtn" type="button" class="secondary nav-prev">Sebelumnya</button>
+            <button id="toggleReviewBtn" type="button" class="secondary nav-review">Tandai Review</button>
+            <button id="nextQuestionBtn" type="button" class="primary nav-next">Berikutnya</button>
+          </div>
+          <button id="submitExamBtn" type="button" class="primary submit-button"><i data-icon="send"></i>Selesai dan Kirim</button>
+        </div>
+
+        <aside class="question-panel">
+          <div class="question-status-card">
+            <h3><span class="icon-tile small"><i data-icon="chart"></i></span>Progres pengerjaan</h3>
+            <p><span id="answeredCount">0</span> / <span id="totalCount">0</span> terjawab</p>
+            <p><span id="reviewCount">0</span> ditandai untuk review</p><div class="progress-row"><progress id="examProgress" max="100" value="0" aria-label="Persentase soal terjawab"></progress><strong id="progressPercent">0%</strong></div>
+          </div>
+          <div class="question-number-frame">
+            <h3><span class="icon-tile small"><i data-icon="grid"></i></span>Nomor Soal</h3><div class="palette-legend"><span class="legend-current">Aktif</span><span class="legend-answered">Terjawab</span><span class="legend-empty">Belum</span><span class="legend-review">Review</span></div>
+            <div class="question-palette" id="questionPalette"></div>
+          </div>
+        </aside>
+      </div>
+
+
+    </section>
+
+    <section class="panel hidden" id="resultPanel">
+      <div class="section-heading"><span class="icon-tile"><i data-icon="award"></i></span><div><h2>Hasil Ujian</h2><p>Setiap latihan adalah satu langkah kemajuan.</p></div></div>
+      <div id="resultSummary"></div>
+      <div id="resultDetails"></div>
+      <div class="actions">
+        <button id="backToSetupBtn" type="button" class="secondary">Kembali ke Pengaturan</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="questionBankModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="questionBankTitle">
+    <div class="modal-panel">
+      <div class="modal-header">
+        <span class="icon-tile large"><i data-icon="database"></i></span><div>
+          <h2 id="questionBankTitle">Manajemen Bank Soal</h2>
+          <p>Simpan beberapa file soal, lalu pilih salah satu untuk dikerjakan.</p>
+        </div>
+        <button id="closeQuestionBankBtn" type="button" class="icon-button" aria-label="Tutup">&times;</button>
+      </div>
+
+      <div class="bank-layout">
+        <section class="bank-upload">
+          <div class="bank-section-heading"><span class="icon-tile"><i data-icon="upload"></i></span><div><h3>Tambah File Soal</h3><p>Upload file soal ke bank soal untuk<br>menyimpannya dan digunakan saat ujian.</p></div></div>
+          <label for="bankFileInput" class="upload-file-label compact-upload">
+            <span class="bank-upload-art" aria-hidden="true"><span class="mini-file"><i data-icon="file"></i>JSON</span><i data-icon="upload"></i><span class="mini-file"><i data-icon="file"></i>CSV</span></span><span class="upload-button"><i data-icon="upload"></i>Upload ke Bank Soal</span>
+            <span class="upload-placeholder" id="bankUploadPlaceholder">Pilih file JSON atau CSV</span>
+            <input id="bankFileInput" type="file" accept=".json,.csv" />
+          </label>
+          <div id="bankMessage" class="upload-message hidden"></div>
+        </section>
+
+        <section class="bank-list-section">
+          <div class="bank-list-header">
+            <div class="bank-section-heading"><span class="icon-tile"><i data-icon="file"></i></span><div><h3>Daftar File Soal</h3><p>Pilih koleksi soal untuk memulai ujian.</p></div></div>
+            <span id="bankCount">0 file</span>
+          </div>
+          <div id="questionBankList" class="bank-list"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+  <input id="bankReplaceFileInput" class="hidden" type="file" accept=".json,.csv" />
+
+  <div id="appDialog" class="app-dialog-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="appDialogTitle" aria-describedby="appDialogMessage">
+    <div class="app-dialog-panel" tabindex="-1">
+      <div class="app-dialog-icon" id="appDialogIcon" aria-hidden="true">!</div>
+      <div class="app-dialog-copy">
+        <h2 id="appDialogTitle">Konfirmasi</h2>
+        <p id="appDialogMessage">Lanjutkan tindakan ini?</p>
+        <label id="appDialogInputLabel" class="app-dialog-input-label hidden" for="appDialogInput">Nama</label>
+        <input id="appDialogInput" class="app-dialog-input hidden" type="text" />
+      </div>
+      <div class="app-dialog-actions">
+        <button id="appDialogCancelBtn" type="button" class="secondary">Batal</button>
+        <button id="appDialogConfirmBtn" type="button" class="primary">Lanjutkan</button>
+      </div>
+    </div>
+  </div>
+
+  <dialog id="guideDialog" class="guide-dialog" aria-labelledby="guideTitle"><div class="modal-header"><span class="icon-tile"><i data-icon="book"></i></span><div><h2 id="guideTitle">Panduan singkat</h2><p>Dari menyusun soal hingga melihat hasil.</p></div><button id="closeGuideBtn" class="icon-button" type="button" aria-label="Tutup panduan">&times;</button></div><ol class="guide-steps"><li><strong>Siapkan soal</strong><p>Upload JSON/CSV atau buka input manual. Pilih jenis pilihan ganda atau esai, lalu tambahkan gambar bila diperlukan (maksimal 2 MB).</p></li><li><strong>Tinjau dan simpan</strong><p>Periksa daftar soal. Simpan ke bank soal pada browser ini atau unduh JSON untuk cadangan yang menyertakan gambar.</p></li><li><strong>Mulai latihan</strong><p>Atur durasi, jawab soal, dan tandai soal yang ingin ditinjau. Jawaban dikirim otomatis saat waktu habis.</p></li><li><strong>Pelajari hasilnya</strong><p>Pilihan ganda dinilai otomatis. Isi nilai esai 0 sampai 100 pada hasil ujian untuk mendapatkan nilai akhir.</p></li></ol><div class="format-hint"><i data-icon="info"></i><span>Progres ujian tidak tersimpan setelah halaman dimuat ulang.</span></div></dialog>
+  <script src="ui.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

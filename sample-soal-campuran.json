@@ -1,0 +1,13 @@
+[
+  {
+    "type": "multiple-choice",
+    "question": "Berapa hasil 7 x 8?",
+    "options": ["54", "56", "58", "60"],
+    "answer": "B"
+  },
+  {
+    "type": "essay",
+    "question": "Jelaskan proses penguapan air dan berikan contoh dalam kehidupan sehari-hari.",
+    "answer": "Air menyerap panas dan berubah dari cair menjadi gas. Contoh: pakaian basah mengering saat dijemur."
+  }
+]

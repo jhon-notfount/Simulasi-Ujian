@@ -1,0 +1,17 @@
+[
+  {
+    "question": "Berapa hasil 2 + 3?",
+    "options": ["3", "4", "5"],
+    "answer": "C"
+  },
+  {
+    "question": "Berapa hasil 3 x 4?",
+    "options": ["6", "8", "10", "12"],
+    "answer": "D"
+  },
+  {
+    "question": "Berapa hasil 5 x 5?",
+    "options": ["5", "10", "15", "20", "25"],
+    "answer": "E"
+  }
+]

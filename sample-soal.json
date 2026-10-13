@@ -1,0 +1,17 @@
+[
+  {
+    "question": "Berapa hasil 7 x 8?",
+    "options": ["54", "56", "58", "60"],
+    "answer": "B"
+  },
+  {
+    "question": "Ibukota Indonesia adalah...",
+    "options": ["Jakarta", "Bandung", "Surabaya", "Medan"],
+    "answer": "A"
+  },
+  {
+    "question": "Suhu beku air dalam derajat Celcius adalah...",
+    "options": ["0", "32", "100", "-10"],
+    "answer": "A"
+  }
+]
