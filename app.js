@@ -58,8 +58,14 @@ let activeQuestionSetId = null;
 let checkedQuestionSetId = null;
 let pendingReplaceQuestionSetId = null;
 let activeDialogState = null;
+let loadedSourceName = null;
+let examDeadline = null;
+let activePanel = "setup";
+let sessionSaveTimer = null;
+let sessionSaveWarned = false;
 
 const QUESTION_BANK_STORAGE_KEY = "examQuestionBank";
+const SESSION_STORAGE_KEY = "examSessionState";
 const OPTION_KEYS = ["A", "B", "C", "D", "E"];
 
 function updateQuestionCount() {
@@ -211,6 +217,8 @@ function showPanel(panel) {
   document.body.classList.toggle("exam-mode", panel === examPanel);
   document.getElementById("setupLayout").classList.toggle("hidden", panel !== setupPanel);
   panel.classList.remove("hidden");
+  activePanel = panel === setupPanel ? "setup" : panel === examPanel ? "exam" : "result";
+  saveSession();
 }
 
 function resetSetupForm() {
@@ -266,9 +274,11 @@ function questionImageHtml(item) {
 function setLoadedQuestions(questions, sourceName, sourceId = null) {
   questionList = cloneQuestions(questions);
   activeQuestionSetId = sourceId;
+  loadedSourceName = sourceName || null;
   resetQuestionState();
   updateQuestionCount();
   uploadPlaceholder.textContent = sourceName || "File soal terpilih";
+  saveSession();
 }
 
 function createQuestionSetId() {
@@ -326,6 +336,109 @@ function saveQuestionBank() {
     showBankMessage("Bank soal gagal disimpan. Ruang penyimpanan browser mungkin penuh.", "error");
     return false;
   }
+}
+
+function saveSession() {
+  clearTimeout(sessionSaveTimer);
+  sessionSaveTimer = null;
+  const state = {
+    version: 1,
+    panel: activePanel,
+    examTitle: examTitleInput.value,
+    duration: durationInput.value,
+    examName: examNameLabel.textContent,
+    deadline: examDeadline,
+    secondsLeft,
+    activeQuestionSetId,
+    sourceName: loadedSourceName,
+    inlineQuestions: activeQuestionSetId ? null : questionList,
+    answers,
+    markedForReview,
+    currentQuestionIndex,
+    essayGrades,
+  };
+  try {
+    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(state));
+  } catch (error) {
+    if (!sessionSaveWarned) {
+      sessionSaveWarned = true;
+      showAlertDialog({
+        title: "Progres Tidak Tersimpan",
+        message: "Penyimpanan browser penuh atau tidak tersedia sehingga progres tidak bisa disimpan. Unduh JSON sebagai cadangan soal.",
+        tone: "warning",
+      });
+    }
+  }
+}
+
+function loadSession() {
+  let stored = null;
+  try { stored = JSON.parse(localStorage.getItem(SESSION_STORAGE_KEY) || "null"); }
+  catch (error) { return; }
+  if (!stored || stored.version !== 1) return;
+
+  examTitleInput.value = typeof stored.examTitle === "string" ? stored.examTitle : "";
+  if (stored.duration != null && stored.duration !== "") durationInput.value = stored.duration;
+
+  let restored = [];
+  if (stored.activeQuestionSetId) {
+    const set = questionBank.find((item) => item.id === stored.activeQuestionSetId);
+    if (set) {
+      try { restored = cloneQuestions(set.questions); loadedSourceName = set.name; }
+      catch (error) { restored = []; }
+    }
+  }
+  if (!restored.length && Array.isArray(stored.inlineQuestions)) {
+    try { restored = cloneQuestions(stored.inlineQuestions); }
+    catch (error) { restored = []; }
+    if (restored.length) loadedSourceName = null;
+  }
+  questionList = restored;
+  activeQuestionSetId = stored.activeQuestionSetId && questionBank.some((item) => item.id === stored.activeQuestionSetId)
+    ? stored.activeQuestionSetId
+    : null;
+  uploadPlaceholder.textContent = loadedSourceName || (questionList.length ? "Kumpulan yang sedang disusun" : "Tidak ada file dipilih");
+
+  answers = Array.isArray(stored.answers)
+    ? stored.answers.slice(0, questionList.length).map((value) => (value == null ? null : String(value)))
+    : [];
+  while (answers.length < questionList.length) answers.push(null);
+  markedForReview = Array.isArray(stored.markedForReview)
+    ? stored.markedForReview.slice(0, questionList.length).map(Boolean)
+    : [];
+  while (markedForReview.length < questionList.length) markedForReview.push(false);
+  currentQuestionIndex = Math.max(0, Math.min(Number(stored.currentQuestionIndex) || 0, Math.max(questionList.length - 1, 0)));
+  essayGrades = Array.isArray(stored.essayGrades)
+    ? stored.essayGrades.slice(0, questionList.length).map((value) => (typeof value === "number" && value >= 0 && value <= 100 ? value : null))
+    : [];
+
+  updateQuestionCount();
+
+  const panel = ["setup", "exam", "result"].includes(stored.panel) ? stored.panel : "setup";
+  if (panel === "result" && questionList.length) {
+    renderResultPanel();
+    showPanel(resultPanel);
+    return;
+  }
+  if (panel === "exam" && questionList.length) {
+    examNameLabel.textContent = stored.examName || "Ujian Simulasi";
+    renderCurrentQuestion();
+    updateExamMeta();
+    const remaining = stored.deadline
+      ? Math.ceil((Number(stored.deadline) - Date.now()) / 1000)
+      : Math.max(0, Math.ceil(Number(stored.secondsLeft) || 0));
+    if (remaining > 0) {
+      secondsLeft = remaining;
+      startTimer();
+      showPanel(examPanel);
+      return;
+    }
+    essayGrades = questionList.map(() => null);
+    renderResultPanel();
+    showPanel(resultPanel);
+    return;
+  }
+  showPanel(setupPanel);
 }
 
 function formatQuestionSetDate(value) {
@@ -512,7 +625,11 @@ async function deleteQuestionSet(id) {
   const previous = questionBank;
   questionBank = questionBank.filter((item) => item.id !== id);
   if (!saveQuestionBank()) { questionBank = previous; return; }
-  if (activeQuestionSetId === id) activeQuestionSetId = null;
+  if (activeQuestionSetId === id) {
+    activeQuestionSetId = null;
+    loadedSourceName = null;
+    saveSession();
+  }
   if (checkedQuestionSetId === id) checkedQuestionSetId = null;
   renderQuestionBank();
   showBankMessage("File soal berhasil dihapus.");
@@ -562,6 +679,7 @@ function renderCurrentQuestion() {
     input.addEventListener("input", () => {
       answers[currentQuestionIndex] = input.value;
       updateExamMeta();
+      saveSession();
     });
     return;
   }
@@ -570,6 +688,7 @@ function renderCurrentQuestion() {
     input.addEventListener("change", () => {
       answers[currentQuestionIndex] = input.value;
       updateExamMeta();
+      saveSession();
     });
   });
 }
@@ -630,6 +749,7 @@ function setCurrentQuestion(index) {
   currentQuestionIndex = index;
   renderCurrentQuestion();
   updateExamMeta();
+  saveSession();
 }
 
 function updateNavigationButtons() {
@@ -649,6 +769,7 @@ function toggleReview() {
   markedForReview[currentQuestionIndex] =
     !markedForReview[currentQuestionIndex];
   updateExamMeta();
+  saveSession();
 }
 
 // manual addQuestion removed; use CSV/JSON upload instead
@@ -666,11 +787,13 @@ async function onClearQuestions() {
 
   questionList = [];
   activeQuestionSetId = null;
+  loadedSourceName = null;
   uploadPlaceholder.textContent = "Tidak ada file dipilih";
   resetQuestionState();
   updateQuestionCount();
   clearUploadMessage();
   showUploadMessage("Semua soal berhasil dihapus.", "success");
+  saveSession();
 }
 
 function normalizeHeaderKey(header) {
@@ -757,7 +880,8 @@ function formatTime(totalSeconds) {
 
 function startTimer() {
   timerLabel.textContent = formatTime(secondsLeft);
-  const deadline = Date.now() + secondsLeft * 1000;
+  examDeadline = Date.now() + secondsLeft * 1000;
+  const deadline = examDeadline;
   timer = setInterval(() => {
     secondsLeft = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
     timerLabel.textContent = formatTime(secondsLeft);
@@ -827,17 +951,15 @@ function updateResultSummary() {
     (essays.length ? '<p>Setiap soal berbobot sama. Nilai esai diisi penilai dari 0 sampai 100.</p>' : "");
 }
 
-function submitExam() {
-  if (activeDialogState) closeAppDialog(false);
-  stopTimer();
-  essayGrades = questionList.map(() => null);
+function renderResultPanel() {
   resultDetails.innerHTML = questionList.map((item, index) => {
     const selected = answers[index];
     const essay = item.type === "essay";
+    const gradeValue = essayGrades[index] ?? "";
     const content = essay
       ? `<p><strong>Jawaban Anda:</strong></p><p class="preserve-lines">${sanitizeText(selected?.trim() || "Belum dijawab")}</p>
          <p><strong>Jawaban acuan:</strong></p><p class="preserve-lines">${sanitizeText(item.answer || "Tidak disediakan")}</p>
-         <label for="essayGrade${index}">Nilai esai (0-100)</label><input id="essayGrade${index}" data-grade="${index}" type="number" min="0" max="100" step="any" placeholder="Belum dinilai" /><small class="grade-error" aria-live="polite"></small>`
+         <label for="essayGrade${index}">Nilai esai (0-100)</label><input id="essayGrade${index}" data-grade="${index}" type="number" min="0" max="100" step="any" placeholder="Belum dinilai" value="${gradeValue}" /><small class="grade-error" aria-live="polite"></small>`
       : `<p><strong>Jawaban Anda:</strong> <span class="${selected === item.answer ? "correct" : "wrong"}">${formatAnswerWithOption(selected, item.options)}</span></p><p><strong>Jawaban benar:</strong> ${formatAnswerWithOption(item.answer, item.options)}</p>`;
     return `<div class="result-row"><h3>Soal ${index + 1} - ${essay ? "Esai" : "Pilihan ganda"}</h3><p class="preserve-lines">${sanitizeText(item.question)}</p>${questionImageHtml(item)}${content}</div>`;
   }).join("");
@@ -848,9 +970,17 @@ function submitExam() {
       essayGrades[Number(input.dataset.grade)] = valid ? value : null;
       input.nextElementSibling.textContent = !valid && (input.value !== "" || input.validity.badInput) ? "Masukkan nilai 0-100." : "";
       updateResultSummary();
+      saveSession();
     });
   });
   updateResultSummary();
+}
+
+function submitExam() {
+  if (activeDialogState) closeAppDialog(false);
+  stopTimer();
+  essayGrades = questionList.map(() => null);
+  renderResultPanel();
   showPanel(resultPanel);
 }
 
@@ -946,6 +1076,8 @@ applyBankSelectionBtn.addEventListener("click", () => {
   if (checkedQuestionSetId) selectQuestionSet(checkedQuestionSetId);
 });
 clearQuestionsBtn.addEventListener("click", onClearQuestions);
+examTitleInput.addEventListener("input", () => saveSession());
+durationInput.addEventListener("input", () => saveSession());
 startExamBtn.addEventListener("click", startExam);
 submitExamBtn.addEventListener("click", confirmSubmitExam);
 prevQuestionBtn.addEventListener("click", onPrevQuestion);
@@ -966,6 +1098,8 @@ endExamBtn.addEventListener("click", async () => {
 
   if (!shouldEnd) return;
   stopTimer();
+  answers = Array(questionList.length).fill(null);
+  markedForReview = Array(questionList.length).fill(false);
   showPanel(setupPanel);
 });
 questionBankModal.addEventListener("click", (event) => {
@@ -1097,9 +1231,11 @@ editorForm.addEventListener("submit", event => {
     });
     questionList.push(item);
     activeQuestionSetId = null;
+    loadedSourceName = null;
     resetQuestionState();
     updateQuestionCount();
     uploadPlaceholder.textContent = "Kumpulan soal yang sedang disusun";
+    saveSession();
     editorForm.reset();
     questionType.dispatchEvent(new Event("change"));
     clearManualImage();
@@ -1118,7 +1254,7 @@ function renderLoadedQuestions() {
     button.setAttribute("aria-label", `Hapus soal ${index + 1}`);
     button.addEventListener("click", async () => {
       if (!await showConfirmDialog({ title: "Hapus soal?", message: `Hapus soal ${index + 1} dari kumpulan saat ini?`, confirmText: "Hapus", tone: "danger" })) return;
-      questionList.splice(index, 1); activeQuestionSetId = null; resetQuestionState(); updateQuestionCount();
+      questionList.splice(index, 1); activeQuestionSetId = null; loadedSourceName = null; resetQuestionState(); updateQuestionCount(); saveSession();
     });
     row.append(text, button); list.appendChild(row);
   });
@@ -1130,6 +1266,7 @@ document.getElementById("saveCurrentQuestions").addEventListener("click", async 
   if (!name.trim()) { showUploadMessage("Nama kumpulan tidak boleh kosong.", "error"); return; }
   if (addQuestionSet({ name: name.trim() }, questionList)) {
     activeQuestionSetId = questionBank[0].id;
+    saveSession();
     showUploadMessage("Kumpulan soal berhasil disimpan ke bank soal.");
   } else showUploadMessage("Bank soal gagal disimpan. Unduh JSON sebagai salinan atau kosongkan sebagian bank soal.", "error");
 });
@@ -1143,5 +1280,11 @@ document.getElementById("exportQuestions").addEventListener("click", () => {
 });
 
 loadQuestionBank();
+loadSession();
 renderQuestionBank();
 updateQuestionCount();
+
+window.addEventListener("pagehide", () => saveSession());
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") saveSession();
+});
